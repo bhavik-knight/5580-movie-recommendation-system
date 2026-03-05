@@ -1,0 +1,149 @@
+import pandas as pd
+import numpy as np
+from src.config import (
+    U_ITEM_PATH, U_ITEM_NAMES, GENRE_COLUMNS,
+    ITEM_SIMILARITY_FILE, MOVIE_LOOKUP_FILE
+)
+
+def load_data():
+    """
+    Load the similarity matrix, title lookup dictionary, and item data.
+    
+    Returns:
+        tuple: (similarity_df, title_to_id, id_to_title, u_item)
+    """
+    # Load similarity matrix
+    similarity_df = pd.read_csv(ITEM_SIMILARITY_FILE, index_col=0)
+    similarity_df.columns = similarity_df.columns.astype(int)
+    
+    # Load movie ID to title lookup
+    lookup_df = pd.read_csv(MOVIE_LOOKUP_FILE)
+    title_to_id = dict(zip(lookup_df['title'], lookup_df['movie_id']))
+    id_to_title = dict(zip(lookup_df['movie_id'], lookup_df['title']))
+    
+    # Load u.item to get genre info
+    u_item = pd.read_csv(U_ITEM_PATH, sep="|", names=U_ITEM_NAMES, encoding="ISO-8859-1")
+    
+    return similarity_df, title_to_id, id_to_title, u_item
+
+def recommend(input_titles: list[str], top_n: int = 10, min_score: float = 0.05) -> list[dict]:
+    """
+    Recommend movies based on a list of input titles.
+    
+    Args:
+        input_titles (list[str]): List of 1 to 5 movie titles.
+        top_n (int, optional): Maximum number of recommendations to return. Defaults to 10.
+        min_score (float, optional): Minimum average similarity score required. Defaults to 0.05.
+        
+    Returns:
+        list[dict]: Top recommendations with rank, title, score, and reason.
+    """
+    similarity_df, title_to_id, id_to_title, u_item = load_data()
+    
+    input_ids = []
+    valid_titles = []
+    
+    for title in input_titles:
+        if title in title_to_id:
+            input_ids.append(title_to_id[title])
+            valid_titles.append(title)
+        else:
+            print(f"Warning: Movie '{title}' not found in the dataset. Skipping.")
+            
+    if not input_ids:
+        print("No valid input movies found. Cannot generate recommendations.")
+        return []
+    
+    # Extract similarity rows for the valid input movies
+    sim_scores_subset = similarity_df.loc[input_ids]
+    
+    # Average the similarity scores across all input movies
+    avg_sim_scores = sim_scores_subset.mean(axis=0)
+    
+    # Exclude the input movies themselves
+    avg_sim_scores = avg_sim_scores.drop(input_ids)
+    
+    # Filter by minimum score
+    avg_sim_scores = avg_sim_scores[avg_sim_scores > min_score]
+    
+    # Sort by averaged score descending
+    avg_sim_scores = avg_sim_scores.sort_values(ascending=False)
+    
+    if len(avg_sim_scores) == 0:
+        print(f"No movies met the minimum similarity threshold of {min_score}.")
+        return []
+        
+    if len(avg_sim_scores) < top_n:
+        print(f"Note: Only {len(avg_sim_scores)} movies met the threshold of {min_score}.")
+        top_scores = avg_sim_scores
+    else:
+        top_scores = avg_sim_scores.head(top_n)
+        
+    # Build recommendations with reasons
+    recommendations = []
+    
+    # Get combined genres of input movies
+    input_u_item = u_item[u_item['movie_id'].isin(input_ids)]
+    
+    for rank, (movie_id, score) in enumerate(top_scores.items(), start=1):
+        movie_row = u_item[u_item['movie_id'] == movie_id]
+        if movie_row.empty:
+            continue
+            
+        movie_title = id_to_title.get(movie_id, "Unknown Title")
+        
+        # Identify shared genres
+        shared_genres = set()
+        for genre in GENRE_COLUMNS:
+            if movie_row[genre].values[0] == 1 and input_u_item[genre].sum() > 0:
+                shared_genres.add(genre)
+                
+        if shared_genres:
+            reason = f"Shares genres with your input: {', '.join(sorted(list(shared_genres)))}"
+        else:
+            reason = "Highly rated by users who liked your input movies"
+            
+        recommendations.append({
+            "rank": rank,
+            "title": movie_title,
+            "score": score,
+            "reason": reason
+        })
+        
+    return recommendations
+
+def print_recommendations(results: list[dict]):
+    """
+    Format and print a list of recommendation dictionaries.
+    
+    Args:
+        results (list[dict]): Recommendations produced by recommend().
+    """
+    if not results:
+        return
+        
+    print("=== TOP RECOMMENDATIONS ===")
+    for rec in results:
+        print(f"{rec['rank']}. {rec['title']}  [Score: {rec['score']:.4f}]")
+        print(f"   Why: {rec['reason']}")
+
+def main():
+    """
+    Run and print predefined test cases for the recommend function.
+    """
+    print("=== RECOMMENDER SYSTEM EVALUATION ===\n")
+    
+    test_cases = [
+        ["Star Wars (1977)"],
+        ["Toy Story (1995)", "Aladdin (1992)"],
+        ["Fargo (1996)", "Pulp Fiction (1994)", "Silence of the Lambs, The (1991)"]
+    ]
+    
+    for case in test_cases:
+        print(f"--- Input: {case} ---")
+        results = recommend(case, top_n=10)
+        print_recommendations(results)
+        print()
+
+if __name__ == "__main__":
+    main()
