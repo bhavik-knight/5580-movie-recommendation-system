@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import logging
+from datetime import datetime
 from src.config import (
     U_ITEM_PATH, U_ITEM_NAMES, GENRE_COLUMNS,
     ITEM_SIMILARITY_FILE, MOVIE_LOOKUP_FILE
@@ -129,9 +131,20 @@ def print_recommendations(results: list[dict]):
 
 def main():
     """
-    Run and print predefined test cases for the recommend function.
+    Run and log predefined test cases for the recommend function.
     """
-    print("=== RECOMMENDER SYSTEM EVALUATION ===\n")
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(message)s",
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler("output/recommendation_test_results.txt", mode="w")
+        ]
+    )
+
+    logging.info(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logging.info("=== RECOMMENDER SYSTEM EVALUATION ===\n")
     
     test_cases = [
         ["Star Wars (1977)"],
@@ -140,10 +153,15 @@ def main():
     ]
     
     for case in test_cases:
-        print(f"--- Input: {case} ---")
+        logging.info(f"--- Input: {case} ---")
         results = recommend(case, top_n=10)
-        print_recommendations(results)
-        print()
+        
+        if results:
+            logging.info("=== TOP RECOMMENDATIONS ===")
+            for rec in results:
+                logging.info(f"{rec['rank']}. {rec['title']}  [Score: {rec['score']:.4f}]")
+                logging.info(f"   Why: {rec['reason']}")
+        logging.info("")
 
 if __name__ == "__main__":
     main()
