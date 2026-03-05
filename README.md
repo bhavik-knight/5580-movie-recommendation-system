@@ -9,7 +9,44 @@ using item-item collaborative filtering via cosine similarity.
 - Collected September 1997 — April 1998
 
 ## Project Structure
-(leave this empty for now — we will fill it in at the end)
+```text
+.
+├── data
+│   ├── u.data
+│   ├── u.genre
+│   ├── u.item
+│   ├── u.occupation
+│   └── u.user
+├── output
+│   ├── eda_summary.txt
+│   ├── filtered_movie_ids.csv
+│   ├── genre_distribution.png
+│   ├── item_similarity_matrix.csv
+│   ├── matrix_summary.txt
+│   ├── movie_id_title_lookup.csv
+│   ├── rating_distribution.png
+│   ├── ratings_matrix.csv
+│   ├── ratings_matrix_normalized.csv
+│   ├── recommendation_test_results.txt
+│   ├── test_report_full.txt
+│   ├── user_age_distribution.png
+│   └── user_gender_distribution.png
+├── pyproject.toml
+├── README.md
+├── src
+│   ├── cli.py
+│   ├── config.py
+│   ├── etl_eda.py
+│   ├── __init__.py
+│   ├── item_similarity.py
+│   ├── ratings_matrix.py
+│   └── recommender.py
+├── tests
+│   ├── conftest.py
+│   ├── __init__.py
+│   └── test_recommender.py
+└── uv.lock
+```
 
 ## Setup
 ### Prerequisites
@@ -33,7 +70,7 @@ Loads and explores all MovieLens data files.
 
 ### Run it
 ```bash
-python src/etl_eda.py
+python -m src.etl_eda
 ```
 
 ### Expected output
@@ -62,7 +99,7 @@ on relative preferences not absolute scores.
 
 ### Run it
 ```bash
-python src/ratings_matrix.py
+python -m src.ratings_matrix
 ```
 
 ### Expected output
@@ -101,7 +138,7 @@ This is a deliberate approximation to make the math work.
 
 ### Run it
 ```bash
-python src/item_similarity.py
+python -m src.item_similarity
 ```
 
 ### Expected output
@@ -147,7 +184,7 @@ Every recommendation includes a reason:
 
 ### Run it
 ```bash
-python src/recommender.py
+python -m src.recommender
 ```
 
 ### Expected output
@@ -172,7 +209,7 @@ The main entry point — runs the full recommendation engine interactively.
 
 ### Run it
 ```bash
-python src/cli.py
+python -m src.cli
 ```
 
 ### Example session
@@ -195,8 +232,34 @@ Would you like to try again? (y/n): n
 Goodbye! Enjoy your movies!
 ```
 
-### Notes
-- Movie titles must match exactly as they appear in the dataset
-- Use the format: Title (Year) e.g. Toy Story (1995)
-- Titles are case sensitive
-- Run python src/item_similarity.py first if output/ is empty
+## Running the Test Suite
+```bash
+# Run all 19 tests
+pytest tests/ -v
+
+# Run by group
+pytest tests/ -v -m core
+pytest tests/ -v -m invalid
+pytest tests/ -v -m edge
+pytest tests/ -v -m assignment
+
+# Save full report
+pytest tests/ -v 2>&1 | tee output/test_report_full.txt
+```
+
+## Known Limitations
+- Dataset is from 1997/1998 — does not include modern movies
+- User base is 71% male and skewed toward students and younger adults
+- 93.7% of the ratings matrix is sparse — most users rated very few movies
+- Titles must match exactly — no fuzzy matching or typo tolerance
+- Cold start problem — cannot recommend for movies with fewer than 20 ratings
+
+## Assumptions
+- A minimum of 20 ratings per movie is required for reliable recommendations
+- Missing ratings are treated as NaN not 0
+- Mean-centering per user removes individual rating bias
+- Cosine similarity on normalized ratings captures collaborative signal effectively
+- Genre overlap is a reasonable proxy for explaining recommendations
+
+## Author
+- Dataset: MovieLens 100K by GroupLens Research, University of Minnesota

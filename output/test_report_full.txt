@@ -27,4 +27,4 @@ tests/test_recommender.py::test_assignment_ranks_are_valid PASSED        [ 89%]
 tests/test_recommender.py::test_assignment_scores_are_meaningful PASSED  [ 94%]
 tests/test_recommender.py::test_assignment_no_self_recommendation PASSED [100%]
 
-============================== 19 passed in 2.20s ==============================
+============================== 19 passed in 2.64s ==============================
