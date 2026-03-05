@@ -1,0 +1,166 @@
+=== SANITY CHECKS ===
+
+DataFrame: u.data
+  Shape: (100000, 4)
+  Null values:
+    None
+  Data types:
+user_id      int64
+movie_id     int64
+rating       int64
+timestamp    int64
+
+DataFrame: u.item
+  Shape: (1682, 24)
+  Null values:
+release_date             1
+video_release_date    1682
+imdb_url                 3
+  Data types:
+movie_id                int64
+title                     str
+release_date              str
+video_release_date    float64
+imdb_url                  str
+unknown                 int64
+Action                  int64
+Adventure               int64
+Animation               int64
+Childrens               int64
+Comedy                  int64
+Crime                   int64
+Documentary             int64
+Drama                   int64
+Fantasy                 int64
+Film_Noir               int64
+Horror                  int64
+Musical                 int64
+Mystery                 int64
+Romance                 int64
+Sci_Fi                  int64
+Thriller                int64
+War                     int64
+Western                 int64
+
+DataFrame: u.user
+  Shape: (943, 5)
+  Null values:
+    None
+  Data types:
+user_id       int64
+age           int64
+gender          str
+occupation      str
+zip_code        str
+
+DataFrame: u.genre
+  Shape: (19, 2)
+  Null values:
+    None
+  Data types:
+genre_name      str
+genre_id      int64
+
+DataFrame: u.occupation
+  Shape: (21, 1)
+  Null values:
+    None
+  Data types:
+occupation    str
+
+Movie ID Consistency (u.data subset of u.item): True
+
+=== EDA on u.data (Ratings) ===
+Rating distribution:
+rating
+1     6110
+2    11370
+3    27145
+4    34174
+5    21201
+
+Ratings per user:
+  Min: 20
+  Max: 737
+  Mean: 106.04
+
+Ratings per movie:
+  Min ratings: 1
+  Max ratings: 583
+  Mean ratings: 59.45
+  Mean average rating: 3.08
+
+Top 10 most rated movies:
+                        title  count
+             Star Wars (1977)    583
+               Contact (1997)    509
+                 Fargo (1996)    508
+    Return of the Jedi (1983)    507
+             Liar Liar (1997)    485
+  English Patient, The (1996)    481
+                Scream (1996)    478
+             Toy Story (1995)    452
+         Air Force One (1997)    431
+Independence Day (ID4) (1996)    429
+
+Top 10 highest average rated movies (min 50 ratings):
+                                                 title     mean
+                                 Close Shave, A (1995) 4.491071
+                               Schindler's List (1993) 4.466443
+                            Wrong Trousers, The (1993) 4.466102
+                                     Casablanca (1942) 4.456790
+Wallace & Gromit: The Best of Aardman Animation (1996) 4.447761
+                      Shawshank Redemption, The (1994) 4.445230
+                                    Rear Window (1954) 4.387560
+                            Usual Suspects, The (1995) 4.385768
+                                      Star Wars (1977) 4.358491
+                                   12 Angry Men (1957) 4.344000
+
+=== EDA on u.item (Movies) ===
+Genre distribution:
+Drama          725
+Comedy         505
+Action         251
+Thriller       251
+Romance        247
+Adventure      135
+Childrens      122
+Crime          109
+Sci_Fi         101
+Horror          92
+War             71
+Mystery         61
+Musical         56
+Documentary     50
+Animation       42
+Western         27
+Film_Noir       24
+Fantasy         22
+unknown          2
+
+Movies belonging to multiple genres: 849
+Movies with unknown=1: 2
+
+=== EDA on u.user (Users) ===
+Age distribution:
+  Min: 7
+  Max: 73
+  Mean: 34.05
+
+Gender breakdown:
+gender
+M    670
+F    273
+
+Top 10 occupations:
+occupation
+student          196
+other            105
+educator          95
+administrator     79
+engineer          67
+programmer        66
+librarian         51
+writer            45
+executive         32
+scientist         31

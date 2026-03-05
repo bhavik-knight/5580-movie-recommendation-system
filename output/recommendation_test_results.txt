@@ -1,0 +1,72 @@
+Generated: 2026-03-05 13:02:06
+=== RECOMMENDER SYSTEM EVALUATION ===
+
+--- Input: ['Star Wars (1977)'] ---
+=== TOP RECOMMENDATIONS ===
+1. Return of the Jedi (1983)  [Score: 0.6565]
+   Why: Shares genres with your input: Action, Adventure, Romance, Sci_Fi, War
+2. Empire Strikes Back, The (1980)  [Score: 0.6320]
+   Why: Shares genres with your input: Action, Adventure, Romance, Sci_Fi, War
+3. Raiders of the Lost Ark (1981)  [Score: 0.5533]
+   Why: Shares genres with your input: Action, Adventure
+4. Godfather, The (1972)  [Score: 0.3738]
+   Why: Shares genres with your input: Action
+5. Princess Bride, The (1987)  [Score: 0.3584]
+   Why: Shares genres with your input: Action, Adventure, Romance
+6. Usual Suspects, The (1995)  [Score: 0.3464]
+   Why: Highly rated by users who liked your input movies
+7. Shawshank Redemption, The (1994)  [Score: 0.3267]
+   Why: Highly rated by users who liked your input movies
+8. Indiana Jones and the Last Crusade (1989)  [Score: 0.3207]
+   Why: Shares genres with your input: Action, Adventure
+9. Blade Runner (1982)  [Score: 0.3183]
+   Why: Shares genres with your input: Sci_Fi
+10. Alien (1979)  [Score: 0.2960]
+   Why: Shares genres with your input: Action, Sci_Fi
+
+--- Input: ['Toy Story (1995)', 'Aladdin (1992)'] ---
+=== TOP RECOMMENDATIONS ===
+1. Lion King, The (1994)  [Score: 0.2436]
+   Why: Shares genres with your input: Animation, Childrens, Musical
+2. Beauty and the Beast (1991)  [Score: 0.2374]
+   Why: Shares genres with your input: Animation, Childrens, Musical
+3. Raiders of the Lost Ark (1981)  [Score: 0.2156]
+   Why: Highly rated by users who liked your input movies
+4. Apollo 13 (1995)  [Score: 0.2080]
+   Why: Highly rated by users who liked your input movies
+5. Empire Strikes Back, The (1980)  [Score: 0.1981]
+   Why: Highly rated by users who liked your input movies
+6. Braveheart (1995)  [Score: 0.1949]
+   Why: Highly rated by users who liked your input movies
+7. Indiana Jones and the Last Crusade (1989)  [Score: 0.1921]
+   Why: Highly rated by users who liked your input movies
+8. Shawshank Redemption, The (1994)  [Score: 0.1888]
+   Why: Highly rated by users who liked your input movies
+9. Back to the Future (1985)  [Score: 0.1849]
+   Why: Shares genres with your input: Comedy
+10. Star Wars (1977)  [Score: 0.1781]
+   Why: Highly rated by users who liked your input movies
+
+--- Input: ['Fargo (1996)', 'Pulp Fiction (1994)', 'Silence of the Lambs, The (1991)'] ---
+=== TOP RECOMMENDATIONS ===
+1. Usual Suspects, The (1995)  [Score: 0.3364]
+   Why: Shares genres with your input: Crime, Thriller
+2. Shawshank Redemption, The (1994)  [Score: 0.3275]
+   Why: Shares genres with your input: Drama
+3. Godfather, The (1972)  [Score: 0.2954]
+   Why: Shares genres with your input: Crime, Drama
+4. One Flew Over the Cuckoo's Nest (1975)  [Score: 0.2741]
+   Why: Shares genres with your input: Drama
+5. Sling Blade (1996)  [Score: 0.2656]
+   Why: Shares genres with your input: Drama, Thriller
+6. Schindler's List (1993)  [Score: 0.2521]
+   Why: Shares genres with your input: Drama
+7. Raiders of the Lost Ark (1981)  [Score: 0.2457]
+   Why: Highly rated by users who liked your input movies
+8. Psycho (1960)  [Score: 0.2312]
+   Why: Shares genres with your input: Thriller
+9. Casablanca (1942)  [Score: 0.2280]
+   Why: Shares genres with your input: Drama
+10. Star Wars (1977)  [Score: 0.2263]
+   Why: Highly rated by users who liked your input movies
+

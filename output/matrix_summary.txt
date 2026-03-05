@@ -1,0 +1,4 @@
+=== RATINGS MATRIX SUMMARY ===
+Matrix shape: 943 × 1682
+Sparsity: 93.70% sparse
+Movies remaining after threshold filter: 939 movies

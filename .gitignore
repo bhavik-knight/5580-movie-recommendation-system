@@ -204,6 +204,4 @@ cython_debug/
 # Marimo
 marimo/_static/
 marimo/_lsp/
-# Ignore data and output directories
-data/
-output/
+# End of gitignore
