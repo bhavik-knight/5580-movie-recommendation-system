@@ -18,6 +18,8 @@ RATINGS_MATRIX_FILE = OUTPUT_DIR / "ratings_matrix.csv"
 RATINGS_MATRIX_NORM_FILE = OUTPUT_DIR / "ratings_matrix_normalized.csv"
 FILTERED_MOVIE_IDS_FILE = OUTPUT_DIR / "filtered_movie_ids.csv"
 MATRIX_SUMMARY_FILE = OUTPUT_DIR / "matrix_summary.txt"
+ITEM_SIMILARITY_FILE = OUTPUT_DIR / "item_similarity_matrix.csv"
+MOVIE_LOOKUP_FILE = OUTPUT_DIR / "movie_id_title_lookup.csv"
 
 # Column Definitions
 GENRE_COLUMNS = [
