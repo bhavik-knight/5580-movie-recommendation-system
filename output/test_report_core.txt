@@ -1,0 +1,15 @@
+============================= test session starts ==============================
+platform linux -- Python 3.14.2, pytest-9.0.2, pluggy-1.6.0 -- /home/bhavik/Dropbox/edu/smu/winter/data_mining/a5_recommendation_system/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/bhavik/Dropbox/edu/smu/winter/data_mining/a5_recommendation_system
+configfile: pyproject.toml
+plugins: anyio-4.12.1, asyncio-1.3.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 4 items
+
+tests/test_recommender.py::test_single_movie_returns_results PASSED      [ 25%]
+tests/test_recommender.py::test_two_movies_returns_results PASSED        [ 50%]
+tests/test_recommender.py::test_three_movies_returns_results PASSED      [ 75%]
+tests/test_recommender.py::test_five_movies_returns_results PASSED       [100%]
+
+============================== 4 passed in 0.97s ===============================
