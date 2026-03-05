@@ -40,6 +40,15 @@ def recommend(input_titles: list[str], top_n: int = 10, min_score: float = 0.05)
     Returns:
         list[dict]: Top recommendations with rank, title, score, and reason.
     """
+    if not input_titles:
+        raise ValueError("input_titles list cannot be empty")
+        
+    if len(input_titles) > 5:
+        raise ValueError("Maximum 5 input titles allowed as per assignment requirements")
+
+    # Enforce maximum of 10 recommendations as per assignment requirements
+    top_n = min(top_n, 10)
+    
     similarity_df, title_to_id, id_to_title, u_item = load_data()
     
     input_ids = []
