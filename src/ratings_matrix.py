@@ -1,157 +1,148 @@
+"""
+Ratings Matrix generation module.
+Pivots raw rating data into a user-movie matrix, filters for significance,
+and performs mean-centering to remove user rating bias.
+"""
+
 import pandas as pd
-import numpy as np
 from src.config import (
     U_DATA_PATH, U_ITEM_PATH, U_DATA_NAMES, U_ITEM_NAMES,
     RATINGS_MATRIX_FILE, RATINGS_MATRIX_NORM_FILE, FILTERED_MOVIE_IDS_FILE,
     MATRIX_SUMMARY_FILE
 )
 
-def load_data():
+def load_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Load ratings data and movie item data.
+    Load raw ratings and movie metadata files.
     
     Returns:
-        tuple: (u_data, u_item) DataFrames
+        tuple: (u_data, u_item) as pandas DataFrames.
     """
     u_data = pd.read_csv(U_DATA_PATH, sep="\t", names=U_DATA_NAMES)
-    
-    # u.item - loading as specified, though we'll primarily use u.data for the matrix
-    u_item = pd.read_csv(
-        U_ITEM_PATH, 
-        sep="|", 
-        names=U_ITEM_NAMES, 
-        encoding="ISO-8859-1"
-    )
+    u_item = pd.read_csv(U_ITEM_PATH, sep="|", names=U_ITEM_NAMES, encoding="ISO-8859-1")
     
     return u_data, u_item
 
-def create_pivot_matrix(df):
+def create_pivot_matrix(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Pivot u.data into a user-movie matrix.
+    Pivot a long-form ratings dataframe into a wide-form user-movie matrix.
+    Rows represent user IDs, columns represent movie IDs, and values are ratings.
     
     Args:
-        df (pd.DataFrame): Dataframe containing ratings.
+        df (pd.DataFrame): Dataframe containing 'user_id', 'movie_id', and 'rating'.
         
     Returns:
-        pd.DataFrame: User-movie pivot table.
+        pd.DataFrame: User-movie pivot table with NaNs for unrated movies.
     """
-    # Rows = user_id, Columns = movie_id, Values = rating
-    # Missing values remain NaN by default in pivot_table
-    matrix = df.pivot_table(index='user_id', columns='movie_id', values='rating')
-    return matrix
+    return df.pivot_table(index='user_id', columns='movie_id', values='rating')
 
-def filter_movies(u_data, threshold=20):
+def filter_movies(u_data: pd.DataFrame, threshold: int = 20) -> pd.Index:
     """
-    Filter out movies with fewer than the threshold count of ratings.
+    Identify movie IDs that meet or exceed a minimum number of ratings.
+    This ensures similarity calculations are based on sufficient sample sizes.
     
     Args:
-        u_data (pd.DataFrame): The ratings dataframe.
-        threshold (int): Minimum number of ratings required.
+        u_data (pd.DataFrame): The raw ratings dataframe.
+        threshold (int): Minimum number of ratings required to keep a movie.
         
     Returns:
-        pd.Index: Indices (movie IDs) of filtered movies.
+        pd.Index: Subset of unique movie IDs meeting the threshold.
     """
     movie_counts = u_data.groupby('movie_id')['rating'].count()
-    filtered_movie_ids = movie_counts[movie_counts >= threshold].index
-    return filtered_movie_ids
+    return movie_counts[movie_counts >= threshold].index
 
-def normalize_ratings(matrix):
+def normalize_ratings(matrix: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
     """
-    Perform mean-centering per user to remove bias.
+    Perform mean-centering per user to remove individual rating bias.
+    Subtracts the user's average rating from all of their movie scores.
     
     Args:
-        matrix (pd.DataFrame): The user-movie ratings matrix.
+        matrix (pd.DataFrame): The pivoted user-movie ratings matrix.
         
     Returns:
-        tuple: (normalized_matrix, user_means)
+        tuple: (normalized_matrix, user_means) where user_means is a Series of averages.
     """
-    # Calculate mean rating per user (ignoring NaNs)
+    # Calculate mean rating per user, ignoring NaNs
     user_means = matrix.mean(axis=1)
     
-    # Subtract user mean from all their ratings
+    # Subtract user mean from each row appropriately
     normalized_matrix = matrix.sub(user_means, axis=0)
     
     return normalized_matrix, user_means
 
-def save_outputs(raw_matrix, normalized_matrix, filtered_ids, summary_text):
+def save_outputs(raw_matrix: pd.DataFrame, normalized_matrix: pd.DataFrame, 
+                 filtered_ids: pd.Index, summary_text: str) -> None:
     """
-    Save the matrices, filtered IDs, and summary to files.
+    Persist the generated matrices and summary data to the output directory.
     
     Args:
-        raw_matrix (pd.DataFrame): Original pivoted matrix.
-        normalized_matrix (pd.DataFrame): Mean-centered matrix.
-        filtered_ids (pd.Index): IDs of movies remaining after filtering.
-        summary_text (str): Calculated summary statistics.
+        raw_matrix (pd.DataFrame): The filtered but non-normalized matrix.
+        normalized_matrix (pd.DataFrame): The mean-centered matrix.
+        filtered_ids (pd.Index): List of movie IDs remaining after threshold filter.
+        summary_text (str): Descriptive summary of matrix properties.
     """
+    # Save matrices in CSV format
     raw_matrix.to_csv(RATINGS_MATRIX_FILE)
     normalized_matrix.to_csv(RATINGS_MATRIX_NORM_FILE)
+    
+    # Save the list of IDs used for downstream components
     pd.Series(filtered_ids, name="movie_id").to_csv(FILTERED_MOVIE_IDS_FILE, index=False)
     
+    # Save the analytical summary
     with open(MATRIX_SUMMARY_FILE, "w") as f:
         f.write(summary_text)
 
-def main():
+def main() -> None:
     """
-    Orchestrates the ratings matrix creation process.
-    
-    Returns:
-        tuple: (raw_matrix, normalized_matrix, filtered_movie_ids)
+    Main execution flow for building and processing the ratings matrix.
+    Handles loading, pivot transformation, filtering, normalization, and persistence.
     """
-    print("=== BUILDING RATINGS MATRIX ===")
+    print("--- Movie Recommendation System: Ratings Matrix Building ---")
     
-    # 1. Load data
-    print("\n[Step 1] Loading data...")
+    # 1. Loading
+    print("Loading datasets...")
     u_data, u_item = load_data()
     
-    # 2. Build initial matrix
-    print("\n[Step 2] Creating initial user-movie matrix...")
+    # 2. Pivoting and Sparsity Analysis
+    print("Creating initial user-movie matrix...")
     full_matrix = create_pivot_matrix(u_data)
-    print(f"Shape: {full_matrix.shape} (Users x Movies)")
     
-    # Sparsity calculation
     total_elements = full_matrix.size
     non_nan_elements = full_matrix.count().sum()
     nan_elements = total_elements - non_nan_elements
     sparsity = (nan_elements / total_elements) * 100
-    print(f"Sparsity: {sparsity:.2f}% ({nan_elements} NaNs out of {total_elements} cells)")
     
-    # 3. Apply threshold filtering
-    print("\n[Step 3] Filtering movies with < 20 ratings...")
-    filtered_ids = filter_movies(u_data, threshold=20)
-    print(f"Movies remaining after filtering: {len(filtered_ids)}")
+    print(f"Initial Shape: {full_matrix.shape[0]} Users x {full_matrix.shape[1]} Movies")
+    print(f"Matrix Sparsity: {sparsity:.2f}%")
     
-    # Rebuild matrix with filtered movies
+    # 3. Filtering
+    threshold = 20
+    print(f"Filtering movies with fewer than {threshold} ratings...")
+    filtered_ids = filter_movies(u_data, threshold=threshold)
+    
+    # Rebuild matrix using only significant movies
     u_data_filtered = u_data[u_data['movie_id'].isin(filtered_ids)]
     raw_matrix = create_pivot_matrix(u_data_filtered)
-    print(f"Filtered matrix shape: {raw_matrix.shape}")
+    print(f"Movies remaining: {len(filtered_ids)}")
+    print(f"Filtered Shape: {raw_matrix.shape}")
     
-    # 4. Normalize ratings
-    print("\n[Step 4] Normalizing ratings (mean-centering per user)...")
+    # 4. Normalization
+    print("Normalizing ratings via per-user mean-centering...")
     normalized_matrix, user_means = normalize_ratings(raw_matrix)
     
-    print("Per-user mean rating stats:")
-    print(f"  Min: {user_means.min():.2f}")
-    print(f"  Max: {user_means.max():.2f}")
-    print(f"  Overall Mean: {user_means.mean():.2f}")
-    
-    # 5. Save outputs
-    print("\n[Step 5] Saving results...")
-    
+    # 5. Summary and Persistence
+    print("Processing summary and saving outputs...")
     summary_text = (
         f"=== RATINGS MATRIX SUMMARY ===\n"
         f"Matrix shape: {full_matrix.shape[0]} × {full_matrix.shape[1]}\n"
         f"Sparsity: {sparsity:.2f}% sparse\n"
-        f"Movies remaining after threshold filter: {len(filtered_ids)} movies\n"
+        f"Movies remaining after threshold filter ({threshold}+ ratings): {len(filtered_ids)} movies\n"
     )
     
     save_outputs(raw_matrix, normalized_matrix, filtered_ids, summary_text)
-    print(f"Saved raw matrix to: {RATINGS_MATRIX_FILE}")
-    print(f"Saved normalized matrix to: {RATINGS_MATRIX_NORM_FILE}")
-    print(f"Saved filtered movie IDs to: {FILTERED_MOVIE_IDS_FILE}")
-    print(f"Saved matrix summary to: {MATRIX_SUMMARY_FILE}")
     
-    print("\nDone!")
-    return raw_matrix, normalized_matrix, filtered_ids
+    print(f"Successfully saved matrices and filtered IDs to: {FILTERED_MOVIE_IDS_FILE.parent}")
+    print("Done!")
 
 if __name__ == "__main__":
     main()
