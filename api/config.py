@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     output_dir: Path = Path("output")
     log_file: Path = Path("output/api.log")
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 def configure_logging(settings: Settings) -> None:
     """

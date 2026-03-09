@@ -4,6 +4,10 @@
 
 echo "🎬 Starting Movie Recommendation System..."
 
+# 0. Sync dependencies
+echo "🔄 Syncing dependencies..."
+uv sync
+
 # 1. Check if Ollama is installed
 if ! command -v ollama &> /dev/null; then
     echo "❌ Ollama is not installed."
@@ -33,6 +37,7 @@ trap "echo '🛑 Stopping Backend...'; kill $BACKEND_PID" EXIT
 
 # 5. Start Chainlit UI in foreground
 echo "🖥️ Starting Chainlit UI on port 7000..."
+
 echo "🔗 UI: http://localhost:7000"
-echo "🔗 API: http://localhost:8000"
+echo "🔗 API: http://localhost:8000/#docs"
 uv run chainlit run main.py -w --port 7000
