@@ -52,6 +52,9 @@ using item-item collaborative filtering via cosine similarity.
 ### Prerequisites
 - Python 3.12+
 - [uv](https://github.com/astral-sh/uv) package manager
+- [Ollama](https://ollama.com/) (Required for chatbot movie extraction)
+    - **Windows/Mac**: Download and run the installer from [ollama.com/download](https://ollama.com/download)
+    - **Linux**: Install via terminal: `curl -fsSL https://ollama.com/install.sh | sh`
 
 ### Install dependencies
 cd into project root then:
