@@ -4,6 +4,10 @@
 
 echo "🎬 Starting Movie Recommendation System..."
 
+# Pre-startup cleanup
+echo "🧹 Cleaning up any existing processes on ports 7000 and 8000..."
+lsof -ti:7000,8000 | xargs kill -9 > /dev/null 2>&1 || true
+
 # 0. Sync dependencies
 echo "🔄 Syncing dependencies..."
 uv sync
