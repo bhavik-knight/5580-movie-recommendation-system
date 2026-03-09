@@ -3,10 +3,9 @@
 Welcome! I suggest movies based on your favourites.
 
 ## How to use
-Just tell me naturally what you like! For example:
-- "I loved Star Wars and Raiders of the Lost Ark"
-- "Suggest something like Fargo or Pulp Fiction"
-- "What should I watch if I liked Toy Story and Aladdin?"
+Tell me at least 3 movies you like to get started! For example:
+- "I loved Toy Story, Fargo, and Pulp Fiction"
+- "Suggest something like Star Wars, Raiders of the Lost Ark, and Aladdin?"
 
 ## Powered by
 - Ollama llama3.1 for natural language understanding

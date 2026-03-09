@@ -41,10 +41,11 @@ async def start():
     welcome_message = f"""🎬 Welcome to the Movie Recommendation Chatbot!
 
 I can suggest movies based on ones you already love.
-Just tell me naturally what you enjoy, for example:
-- "I loved Star Wars and Raiders of the Lost Ark"
-- "Suggest something like Fargo or Pulp Fiction"
-- "What should I watch if I liked Toy Story?"
+**Please name at least 3 movies that you like to get started.**
+
+For example:
+- "I loved Toy Story, Fargo, and Pulp Fiction"
+- "What should I watch if I liked Star Wars, Raiders of the Lost Ark, and Aladdin?"
 
 Loaded {count} movies. Let's find your next favourite!"""
 
@@ -102,6 +103,11 @@ async def on_message(message: cl.Message):
 
     if not matched_titles:
         await cl.Message(content="I couldn't quite catch those movie titles. Could you try typing them exactly, or maybe mention others?").send()
+        return
+
+    if len(matched_titles) < 3:
+        recognized = ", ".join([f"**{t}**" for t in matched_titles])
+        await cl.Message(content=f"I recognized: {recognized}. For the best results, please name at least 3 movies you like! What else do you enjoy?").send()
         return
 
     # Limit to 5 movies to satisfy API constraints
