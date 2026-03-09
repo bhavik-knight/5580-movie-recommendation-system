@@ -31,6 +31,7 @@ class RecommenderService:
         self.genre_data: pd.DataFrame | None = None
         self.avg_ratings: pd.Series | None = None
         self.total_ratings: pd.Series | None = None
+        self.movie_count: int = 0
         self.is_loaded: bool = False
 
     def load(self) -> None:
@@ -56,6 +57,7 @@ class RecommenderService:
                 raise FileNotFoundError(f"Movie lookup file not found at {lookup_path}")
             
             lookup_df = pd.read_csv(lookup_path)
+            self.movie_count = len(lookup_df)
             self.title_lookup = dict(zip(lookup_df['title'], lookup_df['movie_id']))
             self.id_to_title = dict(zip(lookup_df['movie_id'], lookup_df['title']))
             logger.info("Successfully loaded movie title lookups.")

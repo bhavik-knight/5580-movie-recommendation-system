@@ -31,8 +31,8 @@ async def health_check(settings: Settings = Depends(get_settings)):
         status = "ok" if service_ready else "loading"
         
         movies_loaded = 0
-        if deps._recommender_service and deps._recommender_service.title_lookup:
-            movies_loaded = len(deps._recommender_service.title_lookup)
+        if deps._recommender_service:
+            movies_loaded = deps._recommender_service.movie_count
             
         return HealthResponse(
             status=status,
@@ -69,7 +69,7 @@ async def list_movies(
             filtered_movies = all_movies
             
         return MoviesListResponse(
-            total=len(filtered_movies),
+            total=service.movie_count if not search else len(filtered_movies),
             movies=filtered_movies
         )
     except Exception as e:
