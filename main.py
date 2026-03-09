@@ -109,13 +109,16 @@ User Message: '{message.content}'"""
     for m in liked_matches:
         if m not in session_likes:
             session_likes.append(m)
-            # Remove from hates if the user changed their mind
-            if m in session_hates:
-                session_hates.remove(m)
+        # Remove from hates if the user changed their mind
+        if m in session_hates:
+            session_hates.remove(m)
                 
     for m in hated_matches:
-        if m not in session_hates and m not in session_likes:
+        if m not in session_hates:
             session_hates.append(m)
+        # Remove from likes if the user changed their mind
+        if m in session_likes:
+            session_likes.remove(m)
             
     cl.user_session.set("liked_movies", session_likes)
     cl.user_session.set("hated_movies", session_hates)
