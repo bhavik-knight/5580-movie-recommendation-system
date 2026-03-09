@@ -204,4 +204,8 @@ cython_debug/
 # Marimo
 marimo/_static/
 marimo/_lsp/
+
+# Project Specific
+.chainlit/
+tests/scratch/
 # End of gitignore
