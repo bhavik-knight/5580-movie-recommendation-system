@@ -102,7 +102,7 @@ async def on_message(message: cl.Message):
         matched_titles = [res[0] for res in results if res[1] > 90]
 
     if not matched_titles:
-        await cl.Message(content="I couldn't quite catch those movie titles. Could you try typing them exactly, or maybe mention others?").send()
+        await cl.Message(content="I couldn't quite catch those movie titles. Keep in mind my database only contains movies from **1922 to 1998**. Could you try typing them exactly, or maybe mention classics from that era?").send()
         return
 
     if len(matched_titles) < 3:
@@ -128,7 +128,7 @@ async def on_message(message: cl.Message):
             recommendations = results.get("recommendations", [])
 
         if not recommendations:
-            msg.content = f"I found some movies ({', '.join(input_titles)}), but I don't have enough data to make recommendations for them right now. Try different ones?"
+            msg.content = f"I found some movies ({', '.join(input_titles)}), but I don't have enough data to make recommendations for them right now. Remember, my knowledge is limited to movies released between **1922 and 1998**. Try different ones from that period?"
             await msg.update()
             return
 
