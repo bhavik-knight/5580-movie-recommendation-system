@@ -5,11 +5,12 @@ import ollama
 import asyncio
 import os
 from dotenv import load_dotenv
-from rapidfuzz import process
+from src.semantic_matcher import SemanticMatcher
 
 load_dotenv()
 
 FASTAPI_BASE_URL = os.getenv("FASTAPI_BASE_URL", "http://localhost:8000")
+matcher = SemanticMatcher()
 
 @cl.on_chat_start
 async def start():
@@ -30,6 +31,11 @@ async def start():
                 movies_data = movies_response.json()
                 movies_list = movies_data.get("movies", [])
                 cl.user_session.set("movies", movies_list)
+                
+                # Initialize Semantic Matcher
+                await cl.Message(content="🧠 Learning about movies...").send()
+                await matcher.initialize(movies_list)
+                
                 count = movies_data.get("total", 0)
             else:
                 count = 0
@@ -58,60 +64,58 @@ async def on_message(message: cl.Message):
         await cl.Message(content="⚠️ Could not find the available movies list. Did the startup fetch fail?").send()
         return
 
-    # 1. Use Ollama to extract the movie names from the message
+    # 1. Use Ollama to extract LIKED and HATED movies
     try:
+        extraction_prompt = f"""You are a movie extraction specialist. Your job is to find movie titles in the message.
+Categorize them into 'likes' and 'hates'.
+Rules:
+- 'likes': movies the user loves, enjoys, or mentions as positive examples.
+- 'hates': movies the user dislikes, hates, or wants to avoid.
+- Return ONLY a JSON object: {{"likes": ["Title 1"], "hates": ["Title 2"]}}.
+- Strictly return ONLY the JSON data.
+
+User Message: '{message.content}'"""
+
         response = await asyncio.to_thread(
             ollama.chat,
             model="llama3.1:latest",
-            messages=[
-                {"role": "system", "content": "You are a movie title extractor. Your job is to extract raw movie names mentioned in the user message. Return a JSON array of strings: [\"Movie 1\", \"Movie 2\"]. If it's more convenient to return a JSON object, put the titles as keys. ONLY the JSON data."},
-                {"role": "user", "content": f"Extract movie titles from: '{message.content}'"}
-            ],
+            messages=[{"role": "user", "content": extraction_prompt}],
             format="json"
         )
         
-        # Parse the JSON response
         data = json.loads(response['message']['content'])
-        
-        # Handle different potential JSON structures
-        if isinstance(data, list):
-            raw_names = data
-        elif isinstance(data, dict):
-            raw_names = []
-            for k in data.keys():
-                if "," in k and len(data.keys()) == 1:
-                    raw_names.extend([s.strip() for s in k.split(",")])
-                else:
-                    raw_names.append(k)
-        else:
-            raw_names = []
-            
-        # Match extracted names with the exact titles in our dataset
-        matched_titles = []
-        for name in raw_names:
-            match = process.extractOne(name, movies, score_cutoff=75)
-            if match:
-                matched_titles.append(match[0])
-        
-        # Deduplicate matches
-        matched_titles = list(dict.fromkeys(matched_titles))
+        raw_likes = data.get("likes", [])
+        raw_hates = data.get("hates", [])
 
+        # Match using Semantic Matcher
+        liked_matches = await matcher.find_matches(raw_likes)
+        hated_matches = await matcher.find_matches(raw_hates)
+        
+        # Deduplicate and ensure likes don't overlap with hates (user might be contradictory)
+        hated_matches = [m for m in hated_matches if m not in liked_matches]
+        
     except Exception as e:
-        # Fallback to direct fuzzy search if LLM fails
-        results = process.extract(message.content, movies, limit=5)
-        matched_titles = [res[0] for res in results if res[1] > 90]
+        # Fallback to direct semantic search in text
+        liked_matches = await matcher.search_in_text(message.content)
+        hated_matches = []
 
-    if not matched_titles:
+    if not liked_matches:
         await cl.Message(content="I couldn't quite catch those movie titles. Keep in mind my database only contains movies from **1922 to 1998**. Could you try typing them exactly, or maybe mention classics from that era?").send()
         return
 
-    if len(matched_titles) < 3:
-        recognized = ", ".join([f"**{t}**" for t in matched_titles])
-        await cl.Message(content=f"I recognized: {recognized}. For the best results, please name at least 3 movies you like! What else do you enjoy?").send()
+    # Check if we have at least 3 LIKED movies
+    if len(liked_matches) < 3:
+        liked_text = ", ".join([f"**{t}**" for t in liked_matches])
+        hated_text = ""
+        if hated_matches:
+            hated_text = f" and noted that you don't like {', '.join([f'**{t}**' for t in hated_matches])}"
+            
+        needed = 3 - len(liked_matches)
+        await cl.Message(content=f"I recognized that you like {liked_text}{hated_text}. For the best results, I need at least 3 movies you like! Could you name {needed} more?").send()
         return
 
     # Limit to 5 movies to satisfy API constraints
-    input_titles = matched_titles[:5]
+    input_titles = liked_matches[:5]
 
     # Loading Indicator
     msg = cl.Message(content="Finding the perfect movies for you... 🍿")

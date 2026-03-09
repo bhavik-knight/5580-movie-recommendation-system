@@ -15,7 +15,8 @@ A conversational and API-driven movie recommendation system built on the MovieLe
 This project provides a full-stack recommendation experience:
 1.  **FastAPI Backend**: A robust server that calculates recommendations in real-time.
 2.  **Chainlit Chatbot**: A natural language interface that uses **Ollama** to extract movie titles from user messages.
-3.  **Collaborative Filtering**: Recommendations are grounded in actual user ratings, not just genres.
+3.  **Semantic & Fuzzy Matching**: Uses **Sentence-Transformers** for semantic title matching and **RapidFuzz** for fast, accurate fuzzy string matching (handling typos and incomplete names) to reliably map user input to the exact movies in the dataset.
+4.  **Collaborative Filtering**: Recommendations are grounded in actual user ratings, not just genres.
 
 ### 🎓 Assignment Requirements Fulfilled
 
