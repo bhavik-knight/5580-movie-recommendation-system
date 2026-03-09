@@ -131,9 +131,18 @@ User Message: '{message.content}'"""
         matched_titles = list(dict.fromkeys(matched_titles))
 
     except Exception as e:
-        # Fallback to direct fuzzy search if LLM fails
-        results = process.extract(message.content, movies, limit=5)
-        matched_titles = [res[0] for res in results if res[1] > 90]
+        # Fallback to smart semantic search if Cloud API fails (e.g. 402 error)
+        movie_embeddings = cl.user_session.get("movie_embeddings")
+        # Encode the entire message as one query
+        query_embedding = await asyncio.to_thread(semantic_model.encode, message.content, convert_to_tensor=True)
+        
+        # Search for top 5 potentials in the conversational text
+        hits = util.semantic_search(query_embedding, movie_embeddings, top_k=5)
+        
+        matched_titles = []
+        for hit in hits[0]:
+            if hit['score'] > 0.45: # Lower threshold for "needle in a haystack" search
+                matched_titles.append(movies[hit['corpus_id']])
 
     if not matched_titles:
         await cl.Message(content="I couldn't quite catch those movie titles. Keep in mind my database only contains movies from **1922 to 1998**. Could you try typing them exactly, or maybe mention classics from that era?").send()
