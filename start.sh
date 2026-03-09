@@ -12,24 +12,17 @@ lsof -ti:7000,8000 | xargs kill -9 > /dev/null 2>&1 || true
 echo "🔄 Syncing dependencies..."
 uv sync
 
-# 1. Check if Ollama is installed
-if ! command -v ollama &> /dev/null; then
-    echo "❌ Ollama is not installed."
-    echo "🔗 Please download and install Ollama from: https://ollama.com/download"
-    echo "⚠️ After installing, restart this script."
-    exit 1
+# 1. Check for Together AI API Key
+if [ -z "$TOGETHER_API_KEY" ]; then
+    if [ -f .env ]; then
+        export $(grep -v '^#' .env | xargs)
+    fi
+    if [ -z "$TOGETHER_API_KEY" ]; then
+        echo "❌ TOGETHER_API_KEY is not set."
+        echo "⚠️ Please add it to your .env file to enable movie title extraction."
+        exit 1
+    fi
 fi
-
-# 2. Check if Ollama server is running
-if ! curl -s http://localhost:11434/api/tags &> /dev/null; then
-    echo "🚀 Starting Ollama server in background..."
-    ollama serve >/dev/null 2>&1 &
-    sleep 5
-fi
-
-# 3. Ensure llama3.1 model is pulled
-echo "📥 Ensuring llama3.1:latest is available..."
-ollama pull llama3.1:latest
 
 # 4. Start FastAPI Backend in background
 echo "⚙️ Starting FastAPI Backend on port 8000..."
