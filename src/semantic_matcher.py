@@ -15,7 +15,7 @@ class SemanticMatcher:
             self.model.encode, movies_list, convert_to_tensor=True
         )
 
-    async def find_matches(self, query_titles, threshold=0.7):
+    async def find_matches(self, query_titles, threshold=0.65):
         """Match a list of raw titles to the dataset using semantic similarity."""
         if self.movie_embeddings is None:
             return []
@@ -33,7 +33,7 @@ class SemanticMatcher:
                 matched_titles.append(self.movies_list[hits[0][0]['corpus_id']])
             else:
                 # Fallback to RapidFuzz for exact/typo matching
-                match = process.extractOne(name, self.movies_list, score_cutoff=85)
+                match = process.extractOne(name, self.movies_list, score_cutoff=80)
                 if match:
                     matched_titles.append(match[0])
         
