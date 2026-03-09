@@ -1,13 +1,15 @@
 import chainlit as cl
 import httpx
 import json
-import ollama
 import asyncio
 import os
+from together import Together
 from dotenv import load_dotenv
 from rapidfuzz import process
 
 load_dotenv()
+
+together_client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
 
 FASTAPI_BASE_URL = os.getenv("FASTAPI_BASE_URL", "http://localhost:8000")
 
@@ -58,20 +60,19 @@ async def on_message(message: cl.Message):
         await cl.Message(content="⚠️ Could not find the available movies list. Did the startup fetch fail?").send()
         return
 
-    # 1. Use Ollama to extract the movie names from the message
+    # 1. Use Together AI to extract the movie names from the message
     try:
         response = await asyncio.to_thread(
-            ollama.chat,
-            model="llama3.1:latest",
+            together_client.chat.completions.create,
+            model="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
             messages=[
                 {"role": "system", "content": "You are a movie title extractor. Your job is to extract raw movie names mentioned in the user message. Return a JSON array of strings: [\"Movie 1\", \"Movie 2\"]. If it's more convenient to return a JSON object, put the titles as keys. ONLY the JSON data."},
                 {"role": "user", "content": f"Extract movie titles from: '{message.content}'"}
-            ],
-            format="json"
+            ]
         )
         
         # Parse the JSON response
-        data = json.loads(response['message']['content'])
+        data = json.loads(response.choices[0].message.content)
         
         # Handle different potential JSON structures
         if isinstance(data, list):
