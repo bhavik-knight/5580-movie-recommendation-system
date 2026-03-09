@@ -59,6 +59,20 @@ cd into project root then:
 uv sync
 ```
 
+#### 🚀 Quick Start (Automated)
+You can launch the entire system (Backend, UI, and Local LLM) with a single command:
+
+```bash
+./start.sh
+```
+
+- **Chatbot UI**: [http://localhost:7000](http://localhost:7000)
+- **FastAPI Backend**: [http://localhost:8000](http://localhost:8000)
+- **Local LLM**: Powered by Ollama (`llama3.1:latest`)
+
+The script will automatically check for Ollama, pull the required model, and start both services.
+
+
 ## Step 1: ETL + Exploratory Data Analysis
 Loads and explores all MovieLens data files.
 
