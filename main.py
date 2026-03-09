@@ -6,10 +6,13 @@ import os
 from together import Together
 from dotenv import load_dotenv
 from rapidfuzz import process
+from sentence_transformers import SentenceTransformer, util
 
 load_dotenv()
 
+# Initialize Together Client and Sentence Transformer Globaly
 together_client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
+semantic_model = SentenceTransformer('all-MiniLM-L6-v2')
 
 FASTAPI_BASE_URL = os.getenv("FASTAPI_BASE_URL", "http://localhost:8000")
 
@@ -32,7 +35,12 @@ async def start():
                 movies_data = movies_response.json()
                 movies_list = movies_data.get("movies", [])
                 cl.user_session.set("movies", movies_list)
+                
+                # Precompute movie embeddings for semantic search
                 count = movies_data.get("total", 0)
+                await cl.Message(content=f"🧠 Learning about {count} movies...").send()
+                embeddings = await asyncio.to_thread(semantic_model.encode, movies_list, convert_to_tensor=True)
+                cl.user_session.set("movie_embeddings", embeddings)
             else:
                 count = 0
                 await cl.Message(content="⚠️ Could not load movies from API.").send()
@@ -60,15 +68,24 @@ async def on_message(message: cl.Message):
         await cl.Message(content="⚠️ Could not find the available movies list. Did the startup fetch fail?").send()
         return
 
-    # 1. Use Together AI to extract the movie names from the message
+    # 1. Use Together AI to extract ONLY the movies the user LIKES/LOVES
     try:
+        # Improved Prompt: Handle sentiment, conversational filler, and examples
+        extraction_prompt = f"""You are a movie extraction specialist. Your job is to find raw movie titles in the message.
+Rules:
+- ONLY extract movies the user mentions LIKING, LOVING, or wanting recommendations SIMILAR TO.
+- EXPLICITLY IGNORE movies the user mentions HATING, DISLIKING, or wanting to AVOID.
+- Extract up to 5 titles.
+- Return a JSON array of strings: ["Title 1", "Title 2"].
+- If no liked movies are found, return an empty array [].
+- Strictly return ONLY the JSON data.
+
+User Message: '{message.content}'"""
+
         response = await asyncio.to_thread(
             together_client.chat.completions.create,
             model="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-            messages=[
-                {"role": "system", "content": "You are a movie title extractor. Your job is to extract raw movie names mentioned in the user message. Return a JSON array of strings: [\"Movie 1\", \"Movie 2\"]. If it's more convenient to return a JSON object, put the titles as keys. ONLY the JSON data."},
-                {"role": "user", "content": f"Extract movie titles from: '{message.content}'"}
-            ]
+            messages=[{"role": "user", "content": extraction_prompt}]
         )
         
         # Parse the JSON response
@@ -87,12 +104,28 @@ async def on_message(message: cl.Message):
         else:
             raw_names = []
             
-        # Match extracted names with the exact titles in our dataset
+        # Match extracted names using Semantic Embeddings
         matched_titles = []
+        movie_embeddings = cl.user_session.get("movie_embeddings")
+
         for name in raw_names:
-            match = process.extractOne(name, movies, score_cutoff=75)
-            if match:
-                matched_titles.append(match[0])
+            # Encode extraction for semantic similarity check
+            name_embedding = await asyncio.to_thread(semantic_model.encode, name, convert_to_tensor=True)
+            
+            # Semantic search against the 1682 movies
+            hits = util.semantic_search(name_embedding, movie_embeddings, top_k=1)
+            
+            # Use threshold for semantic similarity (0.7+)
+            score = hits[0][0]['score']
+            if score > 0.7:
+                corpus_id = hits[0][0]['corpus_id']
+                found_title = movies[corpus_id]
+                matched_titles.append(found_title)
+            else:
+                # Fallback to RapidFuzz if semantic match is weak
+                match = process.extractOne(name, movies, score_cutoff=85)
+                if match:
+                    matched_titles.append(match[0])
         
         # Deduplicate matches
         matched_titles = list(dict.fromkeys(matched_titles))

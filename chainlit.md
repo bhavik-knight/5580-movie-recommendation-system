@@ -8,6 +8,7 @@ Tell me at least 3 movies you like to get started! For example:
 - "Suggest something like Star Wars, Raiders of the Lost Ark, and Aladdin?"
 
 ## Powered by
-- Ollama llama3.1 for natural language understanding
+- Together AI (meta-llama/Llama-4-Maverick-17B) for natural language extraction
+- Semantic Search (Sentence-Transformers) for title matching
 - Item-item cosine similarity for recommendations
 - MovieLens 100K dataset (1997/1998)
