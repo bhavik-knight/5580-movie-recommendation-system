@@ -31,6 +31,8 @@ async def start():
                 movies_data = movies_response.json()
                 movies_list = movies_data.get("movies", [])
                 cl.user_session.set("movies", movies_list)
+                cl.user_session.set("liked_movies", [])
+                cl.user_session.set("hated_movies", [])
                 
                 # Initialize Semantic Matcher
                 await cl.Message(content="🧠 Learning about movies...").send()
@@ -64,6 +66,9 @@ async def on_message(message: cl.Message):
         await cl.Message(content="⚠️ Could not find the available movies list. Did the startup fetch fail?").send()
         return
 
+    session_likes = cl.user_session.get("liked_movies", [])
+    session_hates = cl.user_session.get("hated_movies", [])
+
     # 1. Use Ollama to extract LIKED and HATED movies
     try:
         extraction_prompt = f"""You are a movie extraction specialist. Your job is to find movie titles in the message.
@@ -91,31 +96,47 @@ User Message: '{message.content}'"""
         liked_matches = await matcher.find_matches(raw_likes)
         hated_matches = await matcher.find_matches(raw_hates)
         
-        # Deduplicate and ensure likes don't overlap with hates (user might be contradictory)
-        hated_matches = [m for m in hated_matches if m not in liked_matches]
-        
     except Exception as e:
         # Fallback to direct semantic search in text
         liked_matches = await matcher.search_in_text(message.content)
         hated_matches = []
 
-    if not liked_matches:
+    if not liked_matches and not hated_matches:
         await cl.Message(content="I couldn't quite catch those movie titles. Keep in mind my database only contains movies from **1922 to 1998**. Could you try typing them exactly, or maybe mention classics from that era?").send()
         return
 
-    # Check if we have at least 3 LIKED movies
-    if len(liked_matches) < 3:
-        liked_text = ", ".join([f"**{t}**" for t in liked_matches])
-        hated_text = ""
-        if hated_matches:
-            hated_text = f" and noted that you don't like {', '.join([f'**{t}**' for t in hated_matches])}"
+    # Update session state with unique new matches
+    for m in liked_matches:
+        if m not in session_likes:
+            session_likes.append(m)
+            # Remove from hates if the user changed their mind
+            if m in session_hates:
+                session_hates.remove(m)
+                
+    for m in hated_matches:
+        if m not in session_hates and m not in session_likes:
+            session_hates.append(m)
             
-        needed = 3 - len(liked_matches)
-        await cl.Message(content=f"I recognized that you like {liked_text}{hated_text}. For the best results, I need at least 3 movies you like! Could you name {needed} more?").send()
+    cl.user_session.set("liked_movies", session_likes)
+    cl.user_session.set("hated_movies", session_hates)
+
+    # Check if we have at least 3 LIKED movies
+    if len(session_likes) < 3:
+        liked_text = ", ".join([f"**{t}**" for t in session_likes]) if session_likes else "no movies"
+        hated_text = ""
+        if session_hates:
+            hated_text = f" and noted that you don't like {', '.join([f'**{t}**' for t in session_hates])}"
+            
+        needed = 3 - len(session_likes)
+        
+        if not session_likes:
+            await cl.Message(content=f"I noted that you don't like {', '.join([f'**{t}**' for t in session_hates])}. I still need at least 3 movies you like to give you good recommendations! Could you name some?").send()
+        else:
+            await cl.Message(content=f"I recognized that you like {liked_text}{hated_text}. For the best results, I need at least 3 movies you like! Could you name {needed} more?").send()
         return
 
     # Limit to 5 movies to satisfy API constraints
-    input_titles = liked_matches[:5]
+    input_titles = session_likes[:5]
 
     # Loading Indicator
     msg = cl.Message(content="Finding the perfect movies for you... 🍿")
