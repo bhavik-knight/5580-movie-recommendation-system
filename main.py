@@ -5,16 +5,15 @@ import asyncio
 import os
 from together import Together
 from dotenv import load_dotenv
-from rapidfuzz import process
-from sentence_transformers import SentenceTransformer, util
+from src.semantic_matcher import SemanticMatcher
 
 load_dotenv()
 
-# Initialize Together Client and Sentence Transformer Globaly
+# Initialize Together Client
 together_client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
-semantic_model = SentenceTransformer('all-MiniLM-L6-v2')
 
 FASTAPI_BASE_URL = os.getenv("FASTAPI_BASE_URL", "http://localhost:8000")
+matcher = SemanticMatcher()
 
 @cl.on_chat_start
 async def start():
@@ -35,12 +34,14 @@ async def start():
                 movies_data = movies_response.json()
                 movies_list = movies_data.get("movies", [])
                 cl.user_session.set("movies", movies_list)
+                cl.user_session.set("liked_movies", [])
+                cl.user_session.set("hated_movies", [])
                 
-                # Precompute movie embeddings for semantic search
+                # Initialize Semantic Matcher
+                await cl.Message(content="🧠 Learning about movies...").send()
+                await matcher.initialize(movies_list)
+                
                 count = movies_data.get("total", 0)
-                await cl.Message(content=f"🧠 Learning about {count} movies...").send()
-                embeddings = await asyncio.to_thread(semantic_model.encode, movies_list, convert_to_tensor=True)
-                cl.user_session.set("movie_embeddings", embeddings)
             else:
                 count = 0
                 await cl.Message(content="⚠️ Could not load movies from API.").send()
@@ -68,16 +69,17 @@ async def on_message(message: cl.Message):
         await cl.Message(content="⚠️ Could not find the available movies list. Did the startup fetch fail?").send()
         return
 
-    # 1. Use Together AI to extract ONLY the movies the user LIKES/LOVES
+    session_likes = cl.user_session.get("liked_movies", [])
+    session_hates = cl.user_session.get("hated_movies", [])
+
+    # 1. Use Together AI to extract LIKED and HATED movies
     try:
-        # Improved Prompt: Handle sentiment, conversational filler, and examples
-        extraction_prompt = f"""You are a movie extraction specialist. Your job is to find raw movie titles in the message.
+        extraction_prompt = f"""You are a movie extraction specialist. Your job is to find movie titles in the message.
+Categorize them into 'likes' and 'hates'.
 Rules:
-- ONLY extract movies the user mentions LIKING, LOVING, or wanting recommendations SIMILAR TO.
-- EXPLICITLY IGNORE movies the user mentions HATING, DISLIKING, or wanting to AVOID.
-- Extract up to 5 titles.
-- Return a JSON array of strings: ["Title 1", "Title 2"].
-- If no liked movies are found, return an empty array [].
+- 'likes': movies the user loves, enjoys, or mentions as positive examples.
+- 'hates': movies the user dislikes, hates, or wants to avoid.
+- Return ONLY a JSON object: {{"likes": ["Title 1"], "hates": ["Title 2"]}}.
 - Strictly return ONLY the JSON data.
 
 User Message: '{message.content}'"""
@@ -88,73 +90,55 @@ User Message: '{message.content}'"""
             messages=[{"role": "user", "content": extraction_prompt}]
         )
         
-        # Parse the JSON response
         data = json.loads(response.choices[0].message.content)
-        
-        # Handle different potential JSON structures
-        if isinstance(data, list):
-            raw_names = data
-        elif isinstance(data, dict):
-            raw_names = []
-            for k in data.keys():
-                if "," in k and len(data.keys()) == 1:
-                    raw_names.extend([s.strip() for s in k.split(",")])
-                else:
-                    raw_names.append(k)
-        else:
-            raw_names = []
-            
-        # Match extracted names using Semantic Embeddings
-        matched_titles = []
-        movie_embeddings = cl.user_session.get("movie_embeddings")
+        raw_likes = data.get("likes", [])
+        raw_hates = data.get("hates", [])
 
-        for name in raw_names:
-            # Encode extraction for semantic similarity check
-            name_embedding = await asyncio.to_thread(semantic_model.encode, name, convert_to_tensor=True)
-            
-            # Semantic search against the 1682 movies
-            hits = util.semantic_search(name_embedding, movie_embeddings, top_k=1)
-            
-            # Use threshold for semantic similarity (0.7+)
-            score = hits[0][0]['score']
-            if score > 0.7:
-                corpus_id = hits[0][0]['corpus_id']
-                found_title = movies[corpus_id]
-                matched_titles.append(found_title)
-            else:
-                # Fallback to RapidFuzz if semantic match is weak
-                match = process.extractOne(name, movies, score_cutoff=85)
-                if match:
-                    matched_titles.append(match[0])
+        # Match using Semantic Matcher
+        liked_matches = await matcher.find_matches(raw_likes)
+        hated_matches = await matcher.find_matches(raw_hates)
         
-        # Deduplicate matches
-        matched_titles = list(dict.fromkeys(matched_titles))
-
     except Exception as e:
-        # Fallback to smart semantic search if Cloud API fails (e.g. 402 error)
-        movie_embeddings = cl.user_session.get("movie_embeddings")
-        # Encode the entire message as one query
-        query_embedding = await asyncio.to_thread(semantic_model.encode, message.content, convert_to_tensor=True)
-        
-        # Search for top 5 potentials in the conversational text
-        hits = util.semantic_search(query_embedding, movie_embeddings, top_k=5)
-        
-        matched_titles = []
-        for hit in hits[0]:
-            if hit['score'] > 0.45: # Lower threshold for "needle in a haystack" search
-                matched_titles.append(movies[hit['corpus_id']])
+        # Fallback to direct semantic search in text
+        liked_matches = await matcher.search_in_text(message.content)
+        hated_matches = []
 
-    if not matched_titles:
+    if not liked_matches and not hated_matches:
         await cl.Message(content="I couldn't quite catch those movie titles. Keep in mind my database only contains movies from **1922 to 1998**. Could you try typing them exactly, or maybe mention classics from that era?").send()
         return
 
-    if len(matched_titles) < 3:
-        recognized = ", ".join([f"**{t}**" for t in matched_titles])
-        await cl.Message(content=f"I recognized: {recognized}. For the best results, please name at least 3 movies you like! What else do you enjoy?").send()
+    # Update session state with unique new matches
+    for m in liked_matches:
+        if m not in session_likes:
+            session_likes.append(m)
+            # Remove from hates if the user changed their mind
+            if m in session_hates:
+                session_hates.remove(m)
+                
+    for m in hated_matches:
+        if m not in session_hates and m not in session_likes:
+            session_hates.append(m)
+            
+    cl.user_session.set("liked_movies", session_likes)
+    cl.user_session.set("hated_movies", session_hates)
+
+    # Check if we have at least 3 LIKED movies
+    if len(session_likes) < 3:
+        liked_text = ", ".join([f"**{t}**" for t in session_likes]) if session_likes else "no movies"
+        hated_text = ""
+        if session_hates:
+            hated_text = f" and noted that you don't like {', '.join([f'**{t}**' for t in session_hates])}"
+            
+        needed = 3 - len(session_likes)
+        
+        if not session_likes:
+            await cl.Message(content=f"I noted that you don't like {', '.join([f'**{t}**' for t in session_hates])}. I still need at least 3 movies you like to give you good recommendations! Could you name some?").send()
+        else:
+            await cl.Message(content=f"I recognized that you like {liked_text}{hated_text}. For the best results, I need at least 3 movies you like! Could you name {needed} more?").send()
         return
 
     # Limit to 5 movies to satisfy API constraints
-    input_titles = matched_titles[:5]
+    input_titles = session_likes[:5]
 
     # Loading Indicator
     msg = cl.Message(content="Finding the perfect movies for you... 🍿")
