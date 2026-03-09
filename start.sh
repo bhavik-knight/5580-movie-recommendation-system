@@ -6,15 +6,10 @@ echo "🎬 Starting Movie Recommendation System..."
 
 # 1. Check if Ollama is installed
 if ! command -v ollama &> /dev/null; then
-    echo "⚠️ Ollama is not installed."
-    if [[ "$OSTYPE" == "linux-gnu"* ]] || [[ "$OSTYPE" == "darwin"* ]]; then
-        echo "🌐 Attempting to install Ollama for Mac/Linux..."
-        curl -fsSL https://ollama.com/install.sh | sh
-    else
-        echo "❌ Automatic installation not supported for your OS."
-        echo "🔗 Please download Ollama manually from: https://ollama.com/download"
-        exit 1
-    fi
+    echo "❌ Ollama is not installed."
+    echo "🔗 Please download and install Ollama from: https://ollama.com/download"
+    echo "⚠️ After installing, restart this script."
+    exit 1
 fi
 
 # 2. Check if Ollama server is running
