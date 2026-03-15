@@ -25,8 +25,8 @@ This project provides a full-stack recommendation experience:
 * **What it does & doesn’t do:** Detailed in the [Detailed Implementation](docs/detailed_implementation.md) doc. 
 * **Algorithm Used:** Item-item collaborative filtering via cosine similarity.
 * **Assumptions:** Explicitly listed under the **Assumptions** and **Known Limitations** sections in [Detailed Implementation](docs/detailed_implementation.md).
-* **Input/Output Constraints:** The FastAPI backend and Chainlit UI successfully accept up to 5 movie titles and return exactly top 10 recommendations.
-* **Bonus Achieved:** Every recommendation includes a `reason` field, explaining the suggestion based on shared genres or collaborative filtering signal. 
+* **Input/Output Constraints:** The FastAPI backend and Chainlit UI successfully accept up to 5 movie titles and return exactly the top 10 recommendations.
+* **Bonus Achieved:** Every recommendation includes a `reason` field, explaining the suggestion based on shared genres or a collaborative filtering signal. 
 * **Code Documentation:** The entire `src/` package and `api/` backend are fully documented with Python docstrings.
 
 ---
@@ -37,8 +37,8 @@ This project provides a full-stack recommendation experience:
 - **Python 3.12+**
 - [**uv**](https://github.com/astral-sh/uv) package manager
 - [**Ollama**](https://ollama.com/) (Required for chatbot movie extraction):
-    - **Windows/Mac**: Download from [ollama.com/download](https://ollama.com/download)
-    - **Linux**: `curl -fsSL https://ollama.com/install.sh | sh`
+    - **Windows**: Download from [ollama.com/download](https://ollama.com/download)
+    - **Linux/Mac**: `curl -fsSL https://ollama.com/install.sh | sh`
 
 ### 2. Launch the System
 You can launch the entire system (Backend, UI, and Local LLM) with a single command:
