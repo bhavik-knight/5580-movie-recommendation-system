@@ -1,16 +1,18 @@
+import json
+import os
+
 import chainlit as cl
 import httpx
-import json
-import ollama
-import asyncio
-import os
+import groq
 from dotenv import load_dotenv
+
 from src.semantic_matcher import SemanticMatcher
 
 load_dotenv()
 
 FASTAPI_BASE_URL = os.getenv("FASTAPI_BASE_URL", "http://localhost:8000")
 matcher = SemanticMatcher()
+
 
 @cl.on_chat_start
 async def start():
@@ -19,9 +21,11 @@ async def start():
             # Check if FastAPI server is running
             response = await client.get(f"{FASTAPI_BASE_URL}/api/v1/health")
             if response.status_code != 200:
-                 await cl.Message(content="⚠️ API server is not running correctly. Please check api/app.py").send()
+                await cl.Message(content="⚠️ API server is not running correctly. Please check api/app.py").send()
         except httpx.ConnectError:
-            await cl.Message(content="⚠️ API server is not running. Please start it with: `uv run python api/app.py`").send()
+            await cl.Message(
+                content="⚠️ API server is not running. Please start it with: `uv run python api/app.py`"
+            ).send()
             return
 
         # Fetch movies
@@ -33,11 +37,11 @@ async def start():
                 cl.user_session.set("movies", movies_list)
                 cl.user_session.set("liked_movies", [])
                 cl.user_session.set("hated_movies", [])
-                
+
                 # Initialize Semantic Matcher
                 await cl.Message(content="🧠 Learning about movies...").send()
                 await matcher.initialize(movies_list)
-                
+
                 count = movies_data.get("total", 0)
             else:
                 count = 0
@@ -58,6 +62,7 @@ For example:
 Loaded {count} movies. Let's find your next favourite!"""
 
     await cl.Message(content=welcome_message).send()
+
 
 @cl.on_message
 async def on_message(message: cl.Message):
@@ -81,28 +86,31 @@ Rules:
 
 User Message: '{message.content}'"""
 
-        response = await asyncio.to_thread(
-            ollama.chat,
-            model="llama3.1:latest",
+        groq_client = groq.AsyncGroq(api_key=os.environ.get("GROQ_API_KEY", ""))
+        chat_completion = await groq_client.chat.completions.create(
             messages=[{"role": "user", "content": extraction_prompt}],
-            format="json"
+            model="llama-3.1-8b-instant",
+            response_format={"type": "json_object"},
         )
-        
-        data = json.loads(response['message']['content'])
+
+        content = chat_completion.choices[0].message.content
+        data = json.loads(content) if content else {}
         raw_likes = data.get("likes", [])
         raw_hates = data.get("hates", [])
 
         # Match using Semantic Matcher
         liked_matches = await matcher.find_matches(raw_likes)
         hated_matches = await matcher.find_matches(raw_hates)
-        
-    except Exception as e:
+
+    except Exception:
         # Fallback to direct semantic search in text
         liked_matches = await matcher.search_in_text(message.content)
         hated_matches = []
 
     if not liked_matches and not hated_matches:
-        await cl.Message(content="I couldn't quite catch those movie titles. Keep in mind my database only contains movies from **1922 to 1998**. Could you try typing them exactly, or maybe mention classics from that era?").send()
+        await cl.Message(
+            content="I couldn't quite catch those movie titles. Keep in mind my database only contains movies from **1922 to 1998**. Could you try typing them exactly, or maybe mention classics from that era?"
+        ).send()
         return
 
     # Update session state with unique new matches
@@ -112,14 +120,14 @@ User Message: '{message.content}'"""
         # Remove from hates if the user changed their mind
         if m in session_hates:
             session_hates.remove(m)
-                
+
     for m in hated_matches:
         if m not in session_hates:
             session_hates.append(m)
         # Remove from likes if the user changed their mind
         if m in session_likes:
             session_likes.remove(m)
-            
+
     cl.user_session.set("liked_movies", session_likes)
     cl.user_session.set("hated_movies", session_hates)
 
@@ -129,13 +137,17 @@ User Message: '{message.content}'"""
         hated_text = ""
         if session_hates:
             hated_text = f" and noted that you don't like {', '.join([f'**{t}**' for t in session_hates])}"
-            
+
         needed = 3 - len(session_likes)
-        
+
         if not session_likes:
-            await cl.Message(content=f"I noted that you don't like {', '.join([f'**{t}**' for t in session_hates])}. I still need at least 3 movies you like to give you good recommendations! Could you name some?").send()
+            await cl.Message(
+                content=f"I noted that you don't like {', '.join([f'**{t}**' for t in session_hates])}. I still need at least 3 movies you like to give you good recommendations! Could you name some?"
+            ).send()
         else:
-            await cl.Message(content=f"I recognized that you like {liked_text}{hated_text}. For the best results, I need at least 3 movies you like! Could you name {needed} more?").send()
+            await cl.Message(
+                content=f"I recognized that you like {liked_text}{hated_text}. For the best results, I need at least 3 movies you like! Could you name {needed} more?"
+            ).send()
         return
 
     # Limit to 5 movies to satisfy API constraints
@@ -147,12 +159,12 @@ User Message: '{message.content}'"""
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
+            api_response = await client.post(
                 f"{FASTAPI_BASE_URL}/api/v1/recommend",
-                json={"titles": input_titles, "top_n": 10}
+                json={"titles": input_titles, "top_n": 10},
             )
-            response.raise_for_status()
-            results = response.json()
+            api_response.raise_for_status()
+            results = api_response.json()
             recommendations = results.get("recommendations", [])
 
         if not recommendations:
@@ -163,7 +175,7 @@ User Message: '{message.content}'"""
         # Format & Display
         final_input_text = ", ".join([f"**{t}**" for t in input_titles])
         formatted_string = f"Great choices! Based on {final_input_text}, here are my top picks for you:\n\n"
-        
+
         for rec in recommendations:
             rank = rec.get("rank")
             title = rec.get("title")
@@ -172,7 +184,7 @@ User Message: '{message.content}'"""
             formatted_string += f"🎬 **{rank}. {title}** — Score: {score:.2f}\n💡 Because: {reason}\n\n"
 
         formatted_string += "Would you like to explore any of these further, or try different movies?"
-        
+
         msg.content = formatted_string
         await msg.update()
 

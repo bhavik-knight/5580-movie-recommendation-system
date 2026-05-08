@@ -23,13 +23,35 @@ MOVIE_LOOKUP_FILE = OUTPUT_DIR / "movie_id_title_lookup.csv"
 
 # Column Definitions
 GENRE_COLUMNS = [
-    "unknown", "Action", "Adventure", "Animation", "Childrens", "Comedy", 
-    "Crime", "Documentary", "Drama", "Fantasy", "Film_Noir", "Horror", 
-    "Musical", "Mystery", "Romance", "Sci_Fi", "Thriller", "War", "Western"
+    "unknown",
+    "Action",
+    "Adventure",
+    "Animation",
+    "Childrens",
+    "Comedy",
+    "Crime",
+    "Documentary",
+    "Drama",
+    "Fantasy",
+    "Film_Noir",
+    "Horror",
+    "Musical",
+    "Mystery",
+    "Romance",
+    "Sci_Fi",
+    "Thriller",
+    "War",
+    "Western",
 ]
 
 U_DATA_NAMES = ["user_id", "movie_id", "rating", "timestamp"]
-U_ITEM_NAMES = ["movie_id", "title", "release_date", "video_release_date", "imdb_url"] + GENRE_COLUMNS
+U_ITEM_NAMES = [
+    "movie_id",
+    "title",
+    "release_date",
+    "video_release_date",
+    "imdb_url",
+] + GENRE_COLUMNS
 U_USER_NAMES = ["user_id", "age", "gender", "occupation", "zip_code"]
 U_GENRE_NAMES = ["genre_name", "genre_id"]
 U_OCCUPATION_NAMES = ["occupation"]

@@ -1,18 +1,19 @@
 """
 Interactive Command Line Interface (CLI) for the Movie Recommendation Engine.
-This module serves as the primary entry point, orchestrating the pipeline 
+This module serves as the primary entry point, orchestrating the pipeline
 and providing a user-friendly way to explore recommendations.
 """
 
 import sys
-from pathlib import Path
-from src.config import ITEM_SIMILARITY_FILE, MOVIE_LOOKUP_FILE, OUTPUT_DIR
-from src.recommender import recommend, load_data
-import src.ratings_matrix as ratings_matrix
+
 import src.item_similarity as item_similarity
+import src.ratings_matrix as ratings_matrix
+from src.config import ITEM_SIMILARITY_FILE, MOVIE_LOOKUP_FILE, OUTPUT_DIR
+from src.recommender import load_data, recommend
 
 # Persistence path for internal error tracking
 ERROR_LOG_PATH = OUTPUT_DIR / "error.log"
+
 
 def check_pipeline_readiness() -> None:
     """
@@ -36,39 +37,41 @@ def check_pipeline_readiness() -> None:
     else:
         print("Precomputed data found. Loading fast path...")
 
+
 def get_interactive_user_movies(title_to_id: dict[str, int]) -> list[str]:
     """
     Collects a list of movie titles from the user via terminal prompts.
     Provides immediate validation feedback and enforces the input limit.
-    
+
     Args:
         title_to_id (dict): A mapping of movie titles to their dataset IDs.
-        
+
     Returns:
         list[str]: A list of validated movie titles.
     """
-    user_inputs = []
+    user_inputs: list[str] = []
     print("\nPlease enter up to 5 movies you like.")
     print("Formatting Tip: Use 'Title (Year)' - e.g., 'Star Wars (1977)'")
-    
+
     while len(user_inputs) < 5:
         idx = len(user_inputs) + 1
         movie = input(f"Movie {idx}: ").strip()
-        
+
         if not movie:
             continue
-            
+
         if movie in title_to_id:
             user_inputs.append(movie)
             if len(user_inputs) < 5:
                 another = input("Add another movie? (y/n): ").lower().strip()
-                if another != 'y':
+                if another != "y":
                     break
         else:
             print(f"  --> Warning: '{movie}' not found.")
             print("      Note: Search is case-sensitive. Verify the year and title format.")
-            
+
     return user_inputs
+
 
 def main() -> None:
     """
@@ -83,7 +86,7 @@ def main() -> None:
 
     # Ensure output dir exists before any writes
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    
+
     # 1. Pipeline Check (Fast vs Slow Path)
     check_pipeline_readiness()
 
@@ -99,14 +102,14 @@ def main() -> None:
     # 3. Interactive Loop
     while True:
         user_movies = get_interactive_user_movies(title_to_id)
-        
+
         if not user_movies:
             print("\nNo movies entered. We need a starting point to recommend!")
         else:
             print("\nSearching for your next favorite movies...")
             try:
                 results = recommend(user_movies, top_n=10)
-                
+
                 if results:
                     print("\n" + "=" * 40)
                     print("         TOP RECOMMENDATIONS")
@@ -123,10 +126,11 @@ def main() -> None:
                 print("\nAn internal error occurred during calculation. See output/error.log.")
 
         retry = input("\nWould you like to try again with different movies? (y/n): ").lower().strip()
-        if retry != 'y':
+        if retry != "y":
             break
 
     print("\nGoodbye! Enjoy your next movie night!")
+
 
 if __name__ == "__main__":
     try:

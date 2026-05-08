@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    command: uv run uvicorn api.app:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    volumes:
+      - .:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build: .
+    command: uv run chainlit run main.py --host 0.0.0.0 --port 7000
+    ports:
+      - "7000:7000"
+    environment:
+      - FASTAPI_BASE_URL=http://backend:8000
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      - .:/app

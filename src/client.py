@@ -4,7 +4,7 @@ Movie Recommendation Engine Client
 
 What the engine does:
 ---------------------
-This engine provides personalized movie recommendations based on a set of input movies provided by the user. 
+This engine provides personalized movie recommendations based on a set of input movies provided by the user.
 It analyzes user-item interactions to find similar movies and explains the rationale behind each recommendation.
 
 What it doesn't do:
@@ -16,7 +16,7 @@ What it doesn't do:
 Algorithm used:
 ---------------
 Item-Item Collaborative Filtering via Cosine Similarity.
-The engine calculates similarity scores between movies by comparing their rating vectors across all users. 
+The engine calculates similarity scores between movies by comparing their rating vectors across all users.
 A mean-centering normalization is applied to remove individual user rating bias.
 
 Dataset description:
@@ -39,18 +39,18 @@ Known limitations:
 """
 
 import sys
-import logging
-from pathlib import Path
-from src.config import ITEM_SIMILARITY_FILE, MOVIE_LOOKUP_FILE, OUTPUT_DIR
-from src.recommender import recommend, load_data
-import src.ratings_matrix as ratings_matrix
+
 import src.item_similarity as item_similarity
+import src.ratings_matrix as ratings_matrix
+from src.config import ITEM_SIMILARITY_FILE, MOVIE_LOOKUP_FILE, OUTPUT_DIR
+from src.recommender import load_data, recommend
 
 # Configure error logging
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 error_log = OUTPUT_DIR / "error.log"
 
-def check_pipeline():
+
+def check_pipeline() -> None:
     """
     Check if precomputed files exist; if not, run the pipeline.
     """
@@ -68,29 +68,37 @@ def check_pipeline():
     else:
         print("Precomputed data found. Loading fast path...")
 
-def get_user_inputs(title_to_id):
+
+def get_user_inputs(title_to_id: dict[str, int]) -> list[str]:
     """
     Interactively collect up to 5 valid movie titles from the user.
+
+    Args:
+        title_to_id (dict[str, int]): A mapping of movie titles to their dataset IDs.
+
+    Returns:
+        list[str]: A list of validated movie titles.
     """
-    inputs = []
+    inputs: list[str] = []
     print("\nPlease enter up to 5 movies you like (Titles must match 1997 MovieLens database).")
-    
+
     while len(inputs) < 5:
         movie = input(f"Movie {len(inputs) + 1}: ").strip()
-        
+
         if movie in title_to_id:
             inputs.append(movie)
             if len(inputs) < 5:
                 another = input("Add another movie? (y/n): ").lower().strip()
-                if another != 'y':
+                if another != "y":
                     break
         else:
             print(f"Warning: Movie '{movie}' not found in our database. Please try another title.")
             print("Tip: Make sure to include the year, e.g., 'Star Wars (1977)'")
-            
+
     return inputs
 
-def run_cli():
+
+def run_cli() -> None:
     """
     Runs the interactive recommendation engine CLI.
     """
@@ -112,14 +120,14 @@ def run_cli():
 
     while True:
         user_movies = get_user_inputs(title_to_id)
-        
+
         if not user_movies:
             print("\nNo valid movies entered. We need at least one to start.")
         else:
             print("\nCalculating recommendations for your tastes...")
             try:
                 results = recommend(user_movies, top_n=10)
-                
+
                 if results:
                     print("\n=== TOP RECOMMENDATIONS ===")
                     for rec in results:
@@ -133,10 +141,11 @@ def run_cli():
                 print("\nAn error occurred while generating recommendations. Logged to output/error.log.")
 
         retry = input("\nWould you like to try again with different movies? (y/n): ").lower().strip()
-        if retry != 'y':
+        if retry != "y":
             break
 
     print("\nThank you for using the MovieLens Recommendation Engine. Goodbye!")
+
 
 if __name__ == "__main__":
     try:

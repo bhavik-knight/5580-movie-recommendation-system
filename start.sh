@@ -12,24 +12,13 @@ lsof -ti:7000,8000 | xargs kill -9 > /dev/null 2>&1 || true
 echo "🔄 Syncing dependencies..."
 uv sync
 
-# 1. Check if Ollama is installed
-if ! command -v ollama &> /dev/null; then
-    echo "❌ Ollama is not installed."
-    echo "🔗 Please download and install Ollama from: https://ollama.com/download"
-    echo "⚠️ After installing, restart this script."
-    exit 1
+# 1. Check if GROQ_API_KEY is set
+if [ -z "$GROQ_API_KEY" ] && [ ! -f .env ] || ! grep -q "GROQ_API_KEY" .env; then
+    # Give a more graceful warning, chainlit can run but won't parse well
+    echo "⚠️ GROQ_API_KEY is not set in environment or .env file."
+    echo "🔗 Please get an API key from https://console.groq.com/keys"
+    echo "⚠️ The recommendation bot will fail to parse your messages without it."
 fi
-
-# 2. Check if Ollama server is running
-if ! curl -s http://localhost:11434/api/tags &> /dev/null; then
-    echo "🚀 Starting Ollama server in background..."
-    ollama serve >/dev/null 2>&1 &
-    sleep 5
-fi
-
-# 3. Ensure llama3.1 model is pulled
-echo "📥 Ensuring llama3.1:latest is available..."
-ollama pull llama3.1:latest
 
 # 4. Start FastAPI Backend in background
 echo "⚙️ Starting FastAPI Backend on port 8000..."

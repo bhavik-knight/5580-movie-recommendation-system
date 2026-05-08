@@ -1,18 +1,19 @@
 """Model layer for the recommendation API."""
 
 from .recommend import (
-    RecommendRequest,
-    MovieResult,
-    RecommendResponse,
     HealthResponse,
     MovieDetailResponse,
-    MoviesListResponse
+    MovieResult,
+    MoviesListResponse,
+    RecommendRequest,
+    RecommendResponse,
 )
 
 __all__ = [
     "RecommendRequest",
     "MovieResult",
-    "RecommendResponse",    "HealthResponse",
+    "RecommendResponse",
+    "HealthResponse",
     "MovieDetailResponse",
-    "MoviesListResponse"
+    "MoviesListResponse",
 ]

@@ -1,12 +1,15 @@
 """Pydantic request and response models for the recommendation API."""
 
 from pydantic import BaseModel, validator
+
 from api.config import get_settings
 
 settings = get_settings()
 
+
 class RecommendRequest(BaseModel):
     """Request model for movie recommendations."""
+
     titles: list[str]
     top_n: int = 10
 
@@ -24,36 +27,46 @@ class RecommendRequest(BaseModel):
             raise ValueError("top_n must be between 1 and 20")
         return v
 
+
 class MovieResult(BaseModel):
     """Individual movie recommendation result."""
+
     rank: int
     title: str
     score: float
     reason: str
 
+
 class RecommendResponse(BaseModel):
     """Full response for a recommendation request."""
+
     input_titles: list[str]
     valid_titles: list[str]
     recommendations: list[MovieResult]
     message: str
 
+
 class HealthResponse(BaseModel):
     """Health check response model."""
+
     status: str
     app_name: str
     app_version: str
     movies_loaded: int
 
+
 class MovieDetailResponse(BaseModel):
     """Detailed information for a single movie."""
+
     movie_id: int
     title: str
     genres: list[str]
     average_rating: float
     total_ratings: int
 
+
 class MoviesListResponse(BaseModel):
     """Response containing a list of all available movies."""
+
     total: int
     movies: list[str]

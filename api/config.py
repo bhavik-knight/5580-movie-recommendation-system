@@ -1,13 +1,16 @@
 import logging
 from functools import lru_cache
 from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     """
     Application-wide settings for the Movie Recommendation API.
     Values can be overridden using environment variables or a .env file.
     """
+
     app_name: str = "Movie Recommendation API"
     app_version: str = "1.0.0"
     api_port: int = 8000
@@ -21,10 +24,11 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
+
 def configure_logging(settings: Settings) -> None:
     """
     Configure global logging settings for the application.
-    
+
     Args:
         settings (Settings): Global application settings.
     """
@@ -33,9 +37,10 @@ def configure_logging(settings: Settings) -> None:
         format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
         handlers=[
             logging.StreamHandler(),
-            logging.FileHandler(settings.log_file, mode="a")
-        ]
+            logging.FileHandler(settings.log_file, mode="a"),
+        ],
     )
+
 
 @lru_cache()
 def get_settings() -> Settings:
