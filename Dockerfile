@@ -18,13 +18,13 @@ RUN uv sync --no-dev --frozen
 # Copy project files
 COPY . .
 
-# Expose ports for FastAPI (8000) and Chainlit (7000)
-EXPOSE 8000 7000
+# Expose port for Chainlit (7000)
+EXPOSE 7000
 
 # Create a startup script that runs both services
 RUN echo '#!/bin/bash\n\
 PORT=${PORT:-7000}\n\
-uv run uvicorn api.app:app --host 0.0.0.0 --port 8000 &\n\
+uv run uvicorn api.app:app --host 127.0.0.1 --port 8000 &\n\
 uv run chainlit run main.py --host 0.0.0.0 --port $PORT\n\
 ' > /app/run.sh && chmod +x /app/run.sh
 
