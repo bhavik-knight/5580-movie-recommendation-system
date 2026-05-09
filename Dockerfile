@@ -21,10 +21,10 @@ COPY . .
 # Expose port for Chainlit (7000)
 EXPOSE 7000
 
-# Create a startup script that runs both services
 RUN echo '#!/bin/bash\n\
+export FASTAPI_BASE_URL=http://127.0.0.1:8080\n\
+uv run uvicorn api.app:app --host 127.0.0.1 --port 8080 &\n\
 PORT=${PORT:-7000}\n\
-uv run uvicorn api.app:app --host 127.0.0.1 --port 8000 &\n\
 uv run chainlit run main.py --host 0.0.0.0 --port $PORT\n\
 ' > /app/run.sh && chmod +x /app/run.sh
 
